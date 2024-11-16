@@ -12,6 +12,8 @@ import (
 const (
 	Mongodb_uri_env = "MONGODB_URI"
 	MONGODB_URI     = "mongodb://localhost:27017"
+	DBNAME          = "hotel-reservation"
+	USERCOLL        = "user"
 )
 
 func ConnectToMongoDB() (*mongo.Client, error) {

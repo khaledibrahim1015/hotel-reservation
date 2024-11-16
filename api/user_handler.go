@@ -1,14 +1,41 @@
 package api
 
 import (
+	"context"
+
 	"github.com/gofiber/fiber/v2"
+	"github.com/khaledibrahim1015/hotel-reservation/db"
 	"github.com/khaledibrahim1015/hotel-reservation/types"
 )
 
 // GeneralResult General Response
 type GeneralResult map[string]interface{}
 
-func HandleGetUsers(ctx *fiber.Ctx) error {
+type UserHandler struct {
+	userStore db.UserStore //  interface
+}
+
+func NewUserHandler(userStore db.UserStore) *UserHandler {
+	return &UserHandler{
+		userStore: userStore,
+	}
+}
+
+func (usrH *UserHandler) HandleGetUser(ctx *fiber.Ctx) error {
+	var (
+		id      = ctx.Params("id")
+		context = context.Background()
+	)
+
+	user, err := usrH.userStore.GetUserByID(context, id)
+	if err != nil {
+		return err
+	}
+
+	return ctx.JSON(GeneralResult{"data": user})
+}
+
+func (usrH *UserHandler) HandleGetUsers(ctx *fiber.Ctx) error {
 	var user types.User = types.User{
 		FirstName: "khaled",
 		LastName:  "ibrahim",
@@ -23,11 +50,4 @@ func HandleGetUsers(ctx *fiber.Ctx) error {
 
 	return ctx.JSON(GeneralResult{"data": users})
 
-}
-func HandleGetUser(ctx *fiber.Ctx) error {
-	user := types.User{
-		FirstName: "anothony",
-		LastName:  "gg",
-	}
-	return ctx.JSON(GeneralResult{"data": user})
 }
