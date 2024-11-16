@@ -1,8 +1,6 @@
 package api
 
 import (
-	"context"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/khaledibrahim1015/hotel-reservation/db"
 	"github.com/khaledibrahim1015/hotel-reservation/types"
@@ -23,11 +21,11 @@ func NewUserHandler(userStore db.UserStore) *UserHandler {
 
 func (usrH *UserHandler) HandleGetUser(ctx *fiber.Ctx) error {
 	var (
-		id      = ctx.Params("id")
-		context = context.Background()
+		id = ctx.Params("id")
+		// context = context.Background()
 	)
 
-	user, err := usrH.userStore.GetUserByID(context, id)
+	user, err := usrH.userStore.GetUserByID(ctx.Context(), id)
 	if err != nil {
 		return err
 	}
@@ -36,18 +34,31 @@ func (usrH *UserHandler) HandleGetUser(ctx *fiber.Ctx) error {
 }
 
 func (usrH *UserHandler) HandleGetUsers(ctx *fiber.Ctx) error {
-	var user types.User = types.User{
-		FirstName: "khaled",
-		LastName:  "ibrahim",
+
+	users, err := usrH.userStore.GetUsers(ctx.Context())
+	if err != nil {
+		return err
 	}
-	users := []types.User{
-		user,
-		types.User{
-			FirstName: "khaled2",
-			LastName:  "ibrahim2",
-		},
+	return ctx.JSON(GeneralResult{"data": users})
+
+}
+
+func (usrH *UserHandler) HandlePostUser(ctx *fiber.Ctx) error {
+
+	var params types.CreateUserParam
+
+	if err := ctx.BodyParser(&params); err != nil {
+		return err
 	}
 
-	return ctx.JSON(GeneralResult{"data": users})
+	user, err := types.NewUserFromParams(params)
+	if err != nil {
+		return err
+	}
+	insertedUser, err := usrH.userStore.InsertUser(ctx.Context(), user)
+	if err != nil {
+		return err
+	}
+	return ctx.JSON(GeneralResult{"data": insertedUser})
 
 }
