@@ -1,13 +1,16 @@
 package types
 
-import "github.com/khaledibrahim1015/hotel-reservation/utils"
+import (
+	"github.com/khaledibrahim1015/hotel-reservation/utils"
+	"github.com/khaledibrahim1015/hotel-reservation/utils/validator"
+)
 
 // request body
 type CreateUserParam struct {
-	FirstName string ` json:"firstName"`
-	LastName  string ` json:"lastName"`
-	Email     string ` json:"email"`
-	Password  string ` json:"password"`
+	FirstName string `validate:"required,min=3,max=50" json:"firstName"`
+	LastName  string `validate:"required,min=3,max=50" json:"lastName"`
+	Email     string `validate:"required,email" json:"email"`
+	Password  string `validate:"required,min=7,max=50" json:"password"`
 }
 
 type User struct {
@@ -33,4 +36,13 @@ func NewUserFromParams(param CreateUserParam) (*User, error) {
 		EncryptedPaaword: encryptedPassword,
 	}, nil
 
+}
+
+func (ve *CreateUserParam) Validate() error {
+
+	v := validator.New()
+	if err := v.Validate(ve); err != nil {
+		return err
+	}
+	return nil
 }
