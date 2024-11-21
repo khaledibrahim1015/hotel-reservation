@@ -1,6 +1,8 @@
 package api
 
 import (
+	"fmt"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/khaledibrahim1015/hotel-reservation/db"
 	"github.com/khaledibrahim1015/hotel-reservation/types"
@@ -56,7 +58,7 @@ func (usrH *UserHandler) HandlePostUser(ctx *fiber.Ctx) error {
 		return err
 	}
 
-	user, err := types.NewUserFromParams(params)
+	user, err := types.MapUserFromParams(params)
 	if err != nil {
 		return err
 	}
@@ -65,5 +67,43 @@ func (usrH *UserHandler) HandlePostUser(ctx *fiber.Ctx) error {
 		return err
 	}
 	return ctx.JSON(GeneralResult{"data": insertedUser})
+
+}
+
+func (userH *UserHandler) HandlePutUser(ctx *fiber.Ctx) error {
+
+	id := ctx.Params("id")
+
+	var params types.UpdateUserParam
+	if err := ctx.BodyParser(&params); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(GeneralResult{
+			"error": "Invalid request payload",
+		})
+	}
+
+	if err := params.Validate(); err != nil {
+		return ctx.Status(fiber.StatusBadRequest).JSON(GeneralResult{
+			"error": err,
+		})
+	}
+
+	// This will now handle both validation and user existence
+
+	if err := userH.userStore.UpdateUser(ctx.Context(), id, &params); err != nil {
+		// Differentiate between different types of errors
+		if err.Error() == fmt.Sprintf("user not found with ID %s", id) {
+			return ctx.Status(fiber.StatusNotFound).JSON(GeneralResult{
+				"error": "User not found",
+			})
+		}
+
+		return ctx.Status(fiber.StatusInternalServerError).JSON(GeneralResult{
+			"error": err.Error(),
+		})
+	}
+
+	return ctx.JSON(GeneralResult{
+		"message": "User updated successfully",
+	})
 
 }

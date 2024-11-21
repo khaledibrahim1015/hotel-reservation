@@ -16,6 +16,7 @@ type UserStore interface {
 	GetUserByID(context.Context, string) (*types.User, error)
 	GetUsers(context.Context) ([]*types.User, error)
 	InsertUser(context.Context, *types.User) (*types.User, error)
+	UpdateUser(context.Context, string, *types.UpdateUserParam) error
 }
 
 type MongoUserStore struct {
@@ -81,4 +82,49 @@ func (store *MongoUserStore) InsertUser(ctx context.Context, user *types.User) (
 	}
 
 	return user, nil
+}
+
+func (store *MongoUserStore) UpdateUser(ctx context.Context, id string, user *types.UpdateUserParam) error {
+
+	// First, check if the user exists
+	_, err := store.GetUserByID(ctx, id)
+	if err != nil {
+		return fmt.Errorf("user not found with ID %s: %v", id, err)
+	}
+
+	// Create an update document with only the non-nil fields
+	update := bson.M{}
+	if user.FirstName != "" {
+		update["firstName"] = user.FirstName
+	}
+	if user.LastName != "" {
+		update["lastName"] = user.LastName
+	}
+	if user.Email != "" {
+		update["email"] = user.Email
+	}
+
+	// If no fields to update, return early
+	if len(update) == 0 {
+		return fmt.Errorf("no update fields provided")
+	}
+
+	// perform update
+	// Convert string ID to ObjectID
+	objId, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return fmt.Errorf("invalid user ID format: %v", err)
+	}
+	filter := bson.M{"_id": objId}
+	updateResult, err := store.coll.UpdateOne(ctx, filter, bson.M{"$set": update})
+	if err != nil {
+		return fmt.Errorf("failed to update user: %v", err)
+	}
+
+	// This check is somewhat redundant due to the earlier existence check,
+	// but it's good to keep for potential race conditions
+	if updateResult.ModifiedCount == 0 {
+		return fmt.Errorf("no user found with ID %s", id)
+	}
+	return nil
 }
